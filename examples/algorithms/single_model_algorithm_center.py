@@ -5,11 +5,12 @@ from scheduler import initialize_scheduler
 from optimizer import initialize_optimizer
 from torch.nn import DataParallel
 from torch.nn.utils import clip_grad_norm_
-from utils import move_to
+from wilds.common.utils import split_into_groups
+from utils import move_to, collate_list
 
-class SingleModelAlgorithm(GroupAlgorithm):
+class SingleModelAlgorithmCenter(GroupAlgorithm):
     """
-    An abstract class for algorithm that has one underlying model.
+    An abstract class for algorithm that has one underlying model + accumulates predictions from multiple batches before centering them.
     """
     def __init__(self, config, model, grouper, loss, metric, n_train_steps):
         # get metrics
@@ -45,7 +46,18 @@ class SingleModelAlgorithm(GroupAlgorithm):
             no_group_logging=config.no_group_logging,
         )
         self.model = model
-        self.center = False
+        self.train_results = self._init_result_dict()
+        self.eval_results = self._init_result_dict()
+        self.center = config.center_data
+
+    def _init_result_dict(self):
+        new_dict = dict(
+            g=[],
+            y_true=[],
+            y_pred=[],
+            metadata=[]
+        )
+        return new_dict
 
     def get_model_output(self, x, y_true):
         if self.model.needs_y:
@@ -80,19 +92,20 @@ class SingleModelAlgorithm(GroupAlgorithm):
 
         outputs = self.get_model_output(x, y_true)
 
-        results = {
+        batch_results = {
             'g': g,
             'y_true': y_true,
             'y_pred': outputs,
             'metadata': metadata,
         }
+
         if unlabeled_batch is not None:
             x, metadata = unlabeled_batch
             x = x.to(self.device)
-            results['unlabeled_metadata'] = metadata
-            results['unlabeled_features'] = self.featurizer(x)
-            results['unlabeled_g'] = self.grouper.metadata_to_group(metadata).to(self.device)
-        return results
+            batch_results['unlabeled_metadata'] = metadata
+            batch_results['unlabeled_features'] = self.featurizer(x)
+            batch_results['unlabeled_g'] = self.grouper.metadata_to_group(metadata).to(self.device)
+        return batch_results
 
     def objective(self, results):
         raise NotImplementedError
@@ -112,10 +125,32 @@ class SingleModelAlgorithm(GroupAlgorithm):
                 - objective (float)
         """
         assert not self.is_training
-        results = self.process_batch(batch)
-        results['objective'] = self.objective(results).item()
-        self.update_log(results)
-        return self.sanitize_dict(results)
+        batch_results = self.process_batch(batch)
+        # add batch results to result dict
+        self.eval_results['g'].append(batch_results['g'])
+        self.eval_results['y_true'].append(batch_results['y_true'])
+        self.eval_results['y_pred'].append(batch_results['y_pred'])
+        self.eval_results['metadata'].append(batch_results['metadata'])
+        if is_epoch_end:
+            self.eval_results = self.preprocess_data(self.eval_results)
+            self.eval_results['objective'] = self.objective(self.eval_results).item()
+            self.update_log(self.eval_results)
+            # clear eval results
+            self.eval_results = self._init_result_dict()
+        return self.sanitize_dict(batch_results)
+
+    def preprocess_data(self, result_dict):
+        # collate data
+        result_dict['g'] = collate_list(result_dict['g'])
+        result_dict["y_pred"] = collate_list(result_dict["y_pred"])
+        result_dict["y_true"] = collate_list(result_dict["y_true"])
+        result_dict["metadata"] = collate_list(result_dict["metadata"])
+        if self.center:  # center data by group
+            unique_groups, group_indices, _ = split_into_groups(result_dict['g'])
+            for i_group in group_indices:  # get list of indices for a group
+                result_dict["y_pred"][i_group] = result_dict["y_pred"][i_group] - torch.mean(result_dict["y_pred"][i_group])
+                result_dict["y_true"][i_group] = result_dict["y_true"][i_group] - torch.mean(result_dict["y_true"][i_group])
+        return result_dict
 
     def update(self, batch, unlabeled_batch=None, is_epoch_end=False):
         """
@@ -137,14 +172,23 @@ class SingleModelAlgorithm(GroupAlgorithm):
         assert self.is_training
 
         # process this batch
-        results = self.process_batch(batch, unlabeled_batch)
+        batch_results = self.process_batch(batch, unlabeled_batch)
+
+        # add batch results to result dict
+        self.train_results['g'].append(batch_results['g'])
+        self.train_results['y_true'].append(batch_results['y_true'])
+        self.train_results['y_pred'].append(batch_results['y_pred'])
+        self.train_results['metadata'].append(batch_results['metadata'])
 
         # update running statistics and update model if we've reached end of effective batch
-        self._update(
-            results,
-            should_step=(((self.batch_idx + 1) % self.gradient_accumulation_steps == 0) or (is_epoch_end))
-        )
-        self.update_log(results)
+        # now that we're centering data, only compute objective if we are at a place to take an opt step
+        _should_step = ((self.batch_idx + 1) % self.gradient_accumulation_steps == 0) or (is_epoch_end)
+        if _should_step:
+            self.train_results = self.preprocess_data(self.train_results)
+            self._update()
+            self.update_log(self.train_results)
+            # clear train results
+            self.train_results = self._init_result_dict()
 
         # iterate batch index
         if is_epoch_end:
@@ -153,29 +197,28 @@ class SingleModelAlgorithm(GroupAlgorithm):
             self.batch_idx += 1
 
         # return only this batch's results
-        return self.sanitize_dict(results)
+        return self.sanitize_dict(batch_results)
 
-    def _update(self, results, should_step=False):
+    def _update(self):
         """
         Computes the objective and updates the model.
         Also updates the results dictionary yielded by process_batch().
         Should be overridden to change algorithm update beyond modifying the objective.
         """
         # compute objective
-        objective = self.objective(results)
-        results['objective'] = objective.item()
+        objective = self.objective(self.train_results)
+        self.train_results['objective'] = objective.item()
         objective.backward()
 
         # update model and logs based on effective batch
-        if should_step:
-            if self.max_grad_norm:
-                clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
-            self.optimizer.step()
-            self.step_schedulers(
-                is_epoch=False,
-                metrics=self.log_dict,
-                log_access=False)
-            self.model.zero_grad()
+        if self.max_grad_norm:
+            clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+        self.optimizer.step()
+        self.step_schedulers(
+            is_epoch=False,
+            metrics=self.log_dict,
+            log_access=False)
+        self.model.zero_grad()
 
     def save_metric_for_logging(self, results, metric, value):
         if isinstance(value, torch.Tensor):
