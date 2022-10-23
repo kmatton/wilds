@@ -60,7 +60,7 @@ def initialize_algorithm(config, datasets, train_grouper, unlabeled_dataset=None
             loss=loss,
             metric=metric,
             n_train_steps=n_train_steps)
-    elif config.arlgirthm == "IRMCenter":
+    elif config.algorithm == "IRMCenter":
         algorithm = IRMCenter(
             config=config,
             d_out=d_out,
