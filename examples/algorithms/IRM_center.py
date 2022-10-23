@@ -91,10 +91,10 @@ class IRMCenter(SingleModelAlgorithmCenter):
         self.save_metric_for_logging(results, 'penalty', penalty)
         return avg_loss + penalty * penalty_weight
 
-    def _update(self, results, should_step=True):
+    def _update(self):
         if self.update_count == self.irm_penalty_anneal_iters:
             print('Hit IRM penalty anneal iters')
             # Reset optimizer to deal with the changing penalty weight
             self.optimizer = initialize_optimizer(self.config, self.model)
-        super()._update(results, should_step=should_step)
+        super()._update()
         self.update_count += 1
