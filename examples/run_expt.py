@@ -27,6 +27,7 @@ from configs.utils import populate_defaults
 import configs.supported as supported
 
 import torch.multiprocessing
+from IPython import embed
 
 # Necessary for large images of GlobalWheat
 from PIL import ImageFile

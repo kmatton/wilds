@@ -1,4 +1,5 @@
 from typing import Optional
+from IPython import embed
 
 import wilds
 
@@ -93,7 +94,7 @@ def get_dataset(dataset: str, version: Optional[str] = None, unlabeled: bool = F
         else:
             if version == '1.0':
                 from wilds.datasets.archive.poverty_v1_0_dataset import PovertyMapDataset
-            else:            
+            else:
                 from wilds.datasets.poverty_dataset import PovertyMapDataset # type:ignore
             return PovertyMapDataset(version=version, **dataset_kwargs)
 
