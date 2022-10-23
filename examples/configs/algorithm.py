@@ -29,6 +29,14 @@ algorithm_defaults = {
         'irm_lambda': 100.,
         'irm_penalty_anneal_iters': 500,
     },
+    'IRMCenter': {
+        'train_loader': 'group',
+        'uniform_over_groups': True,
+        'distinct_groups': True,
+        'eval_loader': 'standard',
+        'irm_lambda': 100.,
+        'irm_penalty_anneal_iters': 500,
+    },
     'DANN': {
         'train_loader': 'group',
         'uniform_over_groups': True,
