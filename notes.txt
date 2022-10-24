@@ -1,0 +1,19 @@
+LOGGING
+
+10-24-2022
+Runs
+First hyper-parameter tune:
+- {center, no center} x {lmbda = 1, 10, 100, 1000}
+    - 2 x 4 = 8 runs
+
+Center
+- 1
+- 10
+- 100
+- 1000
+
+No Center
+- 1
+- 10
+- 100
+- 1000

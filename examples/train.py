@@ -4,7 +4,6 @@ from tqdm import tqdm
 import math
 
 from configs.supported import process_outputs_functions, process_pseudolabels_functions
-from wilds.common.utils import split_into_groups
 from utils import save_model, save_pred, get_pred_prefix, get_model_prefix, collate_list, detach_and_clone, InfiniteDataIterator
 
 def run_epoch(algorithm, dataset, general_logger, epoch, config, train, unlabeled_dataset=None):
@@ -24,7 +23,6 @@ def run_epoch(algorithm, dataset, general_logger, epoch, config, train, unlabele
     epoch_y_true = []
     epoch_y_pred = []
     epoch_metadata = []
-    epoch_g = []
 
     # Assert that data loaders are defined for the datasets
     assert 'loader' in dataset, "A data loader must be defined for the dataset."
@@ -62,7 +60,6 @@ def run_epoch(algorithm, dataset, general_logger, epoch, config, train, unlabele
             y_pred = process_outputs_functions[config.process_outputs_function](y_pred)
         epoch_y_pred.append(y_pred)
         epoch_metadata.append(detach_and_clone(batch_results['metadata']))
-        epoch_g.append(detach_and_clone(batch_results['g']))
 
         if train: 
             effective_batch_idx = (batch_idx + 1) / config.gradient_accumulation_steps
@@ -77,12 +74,6 @@ def run_epoch(algorithm, dataset, general_logger, epoch, config, train, unlabele
     epoch_y_pred = collate_list(epoch_y_pred)
     epoch_y_true = collate_list(epoch_y_true)
     epoch_metadata = collate_list(epoch_metadata)
-    epoch_g = collate_list(epoch_g)
-    if algorithm.center:  # need to center data
-        unique_groups, group_indices, _ = split_into_groups(epoch_g)
-        for i_group in group_indices:  # get list of indices for a group
-            epoch_y_pred[i_group] = epoch_y_pred[i_group] - torch.mean(epoch_y_pred[i_group])
-            epoch_y_true[i_group] = epoch_y_true[i_group] - torch.mean(epoch_y_true[i_group])
 
     results, results_str = dataset['dataset'].eval(
         epoch_y_pred,
@@ -162,7 +153,6 @@ def evaluate(algorithm, datasets, epoch, general_logger, config, is_best):
         epoch_y_true = []
         epoch_y_pred = []
         epoch_metadata = []
-        epoch_g = []
         iterator = tqdm(dataset['loader']) if config.progress_bar else dataset['loader']
         for batch in iterator:
             batch_results = algorithm.evaluate(batch)
@@ -172,17 +162,10 @@ def evaluate(algorithm, datasets, epoch, general_logger, config, is_best):
                 y_pred = process_outputs_functions[config.process_outputs_function](y_pred)
             epoch_y_pred.append(y_pred)
             epoch_metadata.append(detach_and_clone(batch_results['metadata']))
-            epoch_g.append(detach_and_clone(batch_results['g']))
 
         epoch_y_pred = collate_list(epoch_y_pred)
         epoch_y_true = collate_list(epoch_y_true)
         epoch_metadata = collate_list(epoch_metadata)
-        epoch_g = collate_list(epoch_g)
-        if algorithm.center:  # need to center data
-            unique_groups, group_indices, _ = split_into_groups(epoch_g)
-            for i_group in group_indices:  # get list of indices for a group
-                epoch_y_pred[i_group] = epoch_y_pred[i_group] - torch.mean(epoch_y_pred[i_group])
-                epoch_y_true[i_group] = epoch_y_true[i_group] - torch.mean(epoch_y_true[i_group])
 
         results, results_str = dataset['dataset'].eval(
             epoch_y_pred,
