@@ -4,6 +4,7 @@ from configs.model import model_defaults
 from configs.scheduler import scheduler_defaults
 from configs.data_loader import loader_defaults
 from configs.datasets import dataset_defaults, split_defaults
+from IPython import embed
 
 def populate_defaults(config):
     """Populates hyperparameters with defaults implied by choices
@@ -86,6 +87,7 @@ def populate_defaults(config):
             split_defaults[config.dataset][config.split_scheme]
         )
 
+    embed()
     # implied defaults from choice of algorithm
     config = populate_config(
         config,
