@@ -134,6 +134,7 @@ def populate_defaults(config):
         if orig_config.distinct_groups is not None:
             raise ValueError("distinct_groups cannot be specified if the data loader is 'standard'. Consider using a 'group' data loader instead.")
 
+    embed()
     return config
 
 
