@@ -8,7 +8,6 @@ from wilds.datasets.wilds_dataset import WILDSDataset
 from wilds.common.metrics.all_metrics import MSE, PearsonCorrelation
 from wilds.common.grouper import CombinatorialGrouper
 from wilds.common.utils import subsample_idxs, shuffle_arr
-from IPython import embed
 
 DATASET = '2009-17'
 BAND_ORDER = ['BLUE', 'GREEN', 'RED', 'SWIR1', 'SWIR2', 'TEMP1', 'NIR', 'NIGHTLIGHTS']
@@ -232,7 +231,6 @@ class PovertyMapDataset(WILDSDataset):
             groupby_fields=['urban'])
 
         super().__init__(root_dir, download, split_scheme)
-        embed()
 
 
     def get_input(self, idx):
