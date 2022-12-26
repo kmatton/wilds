@@ -165,7 +165,7 @@ class EvalGroupSampler:
         self.unique_groups, self.group_indices, unique_counts = split_into_groups(group_ids, sort_groups=True)
 
         # compute num_batches
-        batches_per_group = [math.ceil(len(self.group_indices[i]) / batch_size) for i in range(len(self.unique_groups))]
+        batches_per_group = [math.ceil(len(self.group_indices[i]) / batch_size) for i in range(len(unique_counts))]
         self.num_batches = sum(batches_per_group)
 
         self.dataset_size = len(group_ids)
