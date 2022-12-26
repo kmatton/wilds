@@ -77,6 +77,19 @@ def get_train_loader(loader, dataset, batch_size,
               drop_last=False,
               **loader_kwargs)
 
+    elif loader == 'group_eval':
+        assert grouper is not None
+        group_ids = grouper.metadata_to_group(dataset.metadata_array)
+        batch_sampler = EvalGroupSampler(group_ids=group_ids, batch_size=batch_size)
+        return DataLoader(dataset,
+              shuffle=None,
+              sampler=None,
+              collate_fn=dataset.collate,
+              batch_sampler=batch_sampler,
+              drop_last=False,
+              **loader_kwargs)
+
+
 def get_eval_loader(loader, dataset, batch_size, grouper=None, **loader_kwargs):
     """
     Constructs and returns the data loader for evaluation.
@@ -165,7 +178,7 @@ class EvalGroupSampler:
         self.unique_groups, self.group_indices, unique_counts = split_into_groups(group_ids, sort_groups=True)
 
         # compute num_batches
-        batches_per_group = [math.ceil(len(self.group_indices[i]) / batch_size) for i in range(len(unique_counts))]
+        batches_per_group = [math.ceil(len(self.group_indices[i]) / batch_size) for i in range(len(self.unique_groups))]
         self.num_batches = sum(batches_per_group)
 
         self.dataset_size = len(group_ids)
