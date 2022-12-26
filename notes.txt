@@ -1,20 +1,3 @@
-LOGGING
-
-10-24-2022
-Runs
-First hyper-parameter tune:
-- {center, no center} x {lmbda = 1, 10, 100, 1000}
-    - 2 x 4 = 8 runs
-
-
-What we've tried so far:
-- *Their Setup*: batch size 64, n groups 8, grad acc steps 1
-- *My Setup*: batch size 256, n groups 1, grad acc steps 4
-
-Try intermedia solutions:
-- batch size 256, n groups 8, grad acc 1 --> can we do with greater batch acc or will it fail??
-
-
 EXPERIMENTS
 
 -- CODE2RUN --
@@ -22,6 +5,69 @@ source venvs/wild/bin/activate
 cd projects/wilds
 export CUDA_VISIBLE_DEVICES=
 python examples/run_expt.py --dataset poverty --algorithm ERM --root_dir ./datasets --log_dir ./log/22-11-13-erm-no-center-fold-A --version "1.1" --center_data False --device 0 --dataset_kwargs fold=A
+
+-------------
+22-12-26
+-------------
+Check how eval occurs --> like how performance is computed + number of samples are counted
+-- also could save ground truth labels in addition to preds
+
+Run with corrected eval grouper for IRM
+- Issue before is that the default data loader for evaluation (val + test) datasets involved using the 'standard'
+  group sampler, which just samples each sample in order -- NOT paying attention to groups. So group centers during evaluation
+  won't be based on the domain variables.
+- I've now fixed this by creating "EvalGroupSampler", which creates batches from each groups data one-by-one (in sorted order)
+
+Experiments that weren't affected by this error: everything but IRM center
+So, need to re-run IRM center experiments (and then also run the ERM-centering experiments I had planned).
+
+1. IRM-center EVAL EXP (assuming best lambda is 1)
+-- center
+-- lambda=1
+-- lr default
+-- batch size 8
+-- n groups per batch 1
+-- grad acc steps 8
+-- SWEEP over folds
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-26-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A
+- B
+- C
+- D
+- E
+
+2. ERM-center EVAl EXP (w/ parameters chosen based on WILDS v2)
+-- center
+-- lambda=0
+-- lr 0.003671043225227438
+-- batch size 15
+-- n groups per batch 1
+-- grad acc steps 8
+-- SWEEP over folds
+
+3. ERM-center EVAl EXP (w/ parameters chosen based on WILDS v1)
+-- center
+-- lambda=0
+-- lr default
+-- batch size 8
+-- n groups per batch 1
+-- grad acc steps 8
+-- SWEEP over folds
+
+4. IRM-center PARAMETER SWEEP EXP
+Parameter setting to run (IRM runs)
+-- center
+-- default learning rate
+-- fold A
+-- batch size 8
+-- n groups per batch 1
+-- grad acc steps 8
+-- SWEEP lambda={1, 10, 100, 1000}
+
+LATER
+---+ also look at different batch sizes + more epochs
+
 
 -------------
 22-12-06

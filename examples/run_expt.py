@@ -155,7 +155,7 @@ def main():
     parser.add_argument('--save_step', type=int)
     parser.add_argument('--save_best', type=parse_bool, const=True, nargs='?', default=True)
     parser.add_argument('--save_last', type=parse_bool, const=True, nargs='?', default=True)
-    parser.add_argument('--save_pred', type=parse_bool, const=True, nargs='?', default=True)
+    parser.add_argument('--save_y', type=parse_bool, const=True, nargs='?', default=True)
     parser.add_argument('--no_group_logging', type=parse_bool, const=True, nargs='?')
     parser.add_argument('--progress_bar', type=parse_bool, const=True, nargs='?', default=False)
     parser.add_argument('--resume', type=parse_bool, const=True, nargs='?', default=False, help='Whether to resume from the most recent saved model in the current log_dir.')
@@ -368,9 +368,6 @@ def main():
                 grouper=train_grouper,
                 batch_size=config.batch_size,
                 **config.loader_kwargs)
-
-        if split == 'val':  # for debugging
-            embed()
 
         # Set fields
         datasets[split]['split'] = split

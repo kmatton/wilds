@@ -281,16 +281,19 @@ def initialize_wandb(config):
     wandb.init(**config.wandb_kwargs)
     wandb.config.update(config)
 
-def save_pred(y_pred, path_prefix):
+
+def save_y(y, path_prefix):
+    # helper function for saving y pred or y true
     # Single tensor
-    if torch.is_tensor(y_pred):
-        df = pd.DataFrame(y_pred.numpy())
+    if torch.is_tensor(y):
+        df = pd.DataFrame(y.numpy())
         df.to_csv(path_prefix + '.csv', index=False, header=False)
     # Dictionary
-    elif isinstance(y_pred, dict) or isinstance(y_pred, list):
-        torch.save(y_pred, path_prefix + '.pth')
+    elif isinstance(y, dict) or isinstance(y, list):
+        torch.save(y, path_prefix + '.pth')
     else:
-        raise TypeError("Invalid type for save_pred")
+        raise TypeError("Invalid type for save_y")
+
 
 def get_replicate_str(dataset, config):
     if dataset['dataset'].dataset_name == 'poverty':

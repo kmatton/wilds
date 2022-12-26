@@ -4,7 +4,7 @@ from tqdm import tqdm
 import math
 
 from configs.supported import process_outputs_functions, process_pseudolabels_functions
-from utils import save_model, save_pred, get_pred_prefix, get_model_prefix, collate_list, detach_and_clone, InfiniteDataIterator
+from utils import save_model, save_y, get_pred_prefix, get_model_prefix, collate_list, detach_and_clone, InfiniteDataIterator
 
 def run_epoch(algorithm, dataset, general_logger, epoch, config, train, unlabeled_dataset=None):
     if dataset['verbose']:
@@ -95,7 +95,7 @@ def run_epoch(algorithm, dataset, general_logger, epoch, config, train, unlabele
         general_logger.write('Epoch eval:\n')
         general_logger.write(results_str)
 
-    return results, epoch_y_pred
+    return results, epoch_y_pred, epoch_y_true
 
 
 def train(algorithm, datasets, general_logger, config, epoch_offset, best_val_metric, unlabeled_dataset=None):
@@ -114,7 +114,7 @@ def train(algorithm, datasets, general_logger, config, epoch_offset, best_val_me
         run_epoch(algorithm, datasets['train'], general_logger, epoch, config, train=True, unlabeled_dataset=unlabeled_dataset)
 
         # Then run val
-        val_results, y_pred = run_epoch(algorithm, datasets['val'], general_logger, epoch, config, train=False)
+        val_results, y_pred, y_true = run_epoch(algorithm, datasets['val'], general_logger, epoch, config, train=False)
         curr_val_metric = val_results[config.val_metric]
         general_logger.write(f'Validation {config.val_metric}: {curr_val_metric:.3f}\n')
 
@@ -130,7 +130,7 @@ def train(algorithm, datasets, general_logger, config, epoch_offset, best_val_me
             general_logger.write(f'Epoch {epoch} has the best validation performance so far.\n')
 
         save_model_if_needed(algorithm, datasets['val'], epoch, config, is_best, best_val_metric)
-        save_pred_if_needed(y_pred, datasets['val'], epoch, config, is_best)
+        save_y_if_needed(y_pred, y_true, datasets['val'], epoch, config, is_best)
 
         # Then run everything else
         if config.evaluate_all_splits:
@@ -138,8 +138,8 @@ def train(algorithm, datasets, general_logger, config, epoch_offset, best_val_me
         else:
             additional_splits = config.eval_splits
         for split in additional_splits:
-            _, y_pred = run_epoch(algorithm, datasets[split], general_logger, epoch, config, train=False)
-            save_pred_if_needed(y_pred, datasets[split], epoch, config, is_best)
+            _, y_pred, y_true = run_epoch(algorithm, datasets[split], general_logger, epoch, config, train=False)
+            save_y_if_needed(y_pred, y_true, datasets[split], epoch, config, is_best)
 
         general_logger.write('\n')
 
@@ -179,7 +179,8 @@ def evaluate(algorithm, datasets, epoch, general_logger, config, is_best):
 
         # Skip saving train preds, since the train loader generally shuffles the data
         if split != 'train':
-            save_pred_if_needed(epoch_y_pred, dataset, epoch, config, is_best, force_save=True)
+            save_y_if_needed(epoch_y_pred, epoch_y_true, dataset, epoch, config, is_best, force_save=True)
+
 
 def infer_predictions(model, loader, config):
     """
@@ -208,6 +209,7 @@ def infer_predictions(model, loader, config):
 
     return torch.cat(y_pred, 0) if torch.is_tensor(y_pred[0]) else y_pred
 
+
 def log_results(algorithm, dataset, general_logger, epoch, effective_batch_idx):
     if algorithm.has_log:
         log = algorithm.get_log()
@@ -219,15 +221,18 @@ def log_results(algorithm, dataset, general_logger, epoch, effective_batch_idx):
         algorithm.reset_log()
 
 
-def save_pred_if_needed(y_pred, dataset, epoch, config, is_best, force_save=False):
-    if config.save_pred:
+def save_y_if_needed(y_pred, y_true, dataset, epoch, config, is_best, force_save=False):
+    if config.save_y:
         prefix = get_pred_prefix(dataset, config)
         if force_save or (config.save_step is not None and (epoch + 1) % config.save_step == 0):
-            save_pred(y_pred, prefix + f'epoch:{epoch}_pred')
+            save_y(y_pred, prefix + f'epoch:{epoch}_pred')
+            save_y(y_true, prefix + f'epoch:{epoch}_gt')
         if (not force_save) and config.save_last:
-            save_pred(y_pred, prefix + f'epoch:last_pred')
+            save_y(y_pred, prefix + f'epoch:last_pred')
+            save_y(y_true, prefix + f'epoch:last_gt')
         if config.save_best and is_best:
-            save_pred(y_pred, prefix + f'epoch:best_pred')
+            save_y(y_pred, prefix + f'epoch:best_pred')
+            save_y(y_true, prefix + f'epoch:best_gt')
 
 
 def save_model_if_needed(algorithm, dataset, epoch, config, is_best, best_val_metric):
