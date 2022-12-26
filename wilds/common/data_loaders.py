@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler, SubsetRandomSampler
@@ -144,6 +145,37 @@ class GroupSampler:
             # Flatten
             sampled_ids = np.concatenate(sampled_ids)
             yield sampled_ids
+
+    def __len__(self):
+        return self.num_batches
+
+
+class EvalGroupSampler:
+    """
+        Deterministically creates batches by looping through each group in order and forming batches for
+        each group one at a time.
+    """
+    def __init__(self, group_ids, batch_size):
+
+        if len(group_ids) < batch_size:
+            raise ValueError(f'The dataset has only {len(group_ids)} examples but the batch size is {batch_size}. There must be enough examples to form at least one complete batch.')
+
+        self.batch_size = batch_size
+        self.group_ids = group_ids
+        self.unique_groups, self.group_indices, unique_counts = split_into_groups(group_ids, sort_groups=True)
+
+        # compute num_batches
+        batches_per_group = [math.ceil(len(self.group_indices[i]) / batch_size) for i in range(len(self.unique_groups))]
+        self.num_batches = sum(batches_per_group)
+
+        self.dataset_size = len(group_ids)
+
+    def __iter__(self):
+        for group, group_idx in zip(self.unique_groups, self.group_indices):
+            # loop through batches in this group
+            for i in range(0, len(group_idx), self.batch_size):
+                sampled_ids = group_idx[i:i+self.batch_size]
+                yield sampled_ids
 
     def __len__(self):
         return self.num_batches

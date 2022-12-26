@@ -6,14 +6,191 @@ First hyper-parameter tune:
 - {center, no center} x {lmbda = 1, 10, 100, 1000}
     - 2 x 4 = 8 runs
 
+
+What we've tried so far:
+- *Their Setup*: batch size 64, n groups 8, grad acc steps 1
+- *My Setup*: batch size 256, n groups 1, grad acc steps 4
+
+Try intermedia solutions:
+- batch size 256, n groups 8, grad acc 1 --> can we do with greater batch acc or will it fail??
+
+
+EXPERIMENTS
+
+-- CODE2RUN --
+source venvs/wild/bin/activate
+cd projects/wilds
+export CUDA_VISIBLE_DEVICES=
+python examples/run_expt.py --dataset poverty --algorithm ERM --root_dir ./datasets --log_dir ./log/22-11-13-erm-no-center-fold-A --version "1.1" --center_data False --device 0 --dataset_kwargs fold=A
+
+-------------
+22-12-06
+-------------
+Replicate their ERM results (w/ Wilds V2 parameters)
+python examples/run_expt.py --dataset poverty --algorithm ERM --root_dir ./datasets --log_dir ./log/22-12-06-erm-no-center-fold-A --center_data False --device 0 --dataset_kwargs fold=A --seed 0 --batch_size 120 --lr 0.003671043225227438 --loader_kwargs num_workers=4 pin_memory=True
+- A [ml 7] [gpu 4] -- tmux 0
+- B [ml 7] [gpu 5] -- tmux 1
+- C [ml 7] [gpu 6] -- tmux 2
+- D [ml 7] [gpu 7] -- tmux 3
+- E [ml 4] [gpu 1] -- tmux 0
+
+-------------
+22-11-13
+-------------
+Replicate their ERM results (note their ERM implementation doesn't sample per group)
+- A [ml 7] [gpu 0] -- tmux 0
+- B [ml 7] [gpu 1] -- tmux 1
+- C [ml 7] [gpu 2] -- tmux 2
+- D [ml 7] [gpu 3] -- tmux 3
+- E [ml 7] [gpu 4] -- tmux 4
+
+./log/22-11-13-erm-no-center-fold-A
+
+-------------
+22-11-10
+-------------
+Run eval of my centering solution with their setup
+- A [running] [ml 7] [gpu 2] -- tmux 0
+- B [running] [ml 7] [gpu 1] -- tmux 1
+- C [running] [ml 7] [gpu 0] -- tmux 2
+- D [running] [ml 7] [gpu 3] -- tmux 3
+- E [running] [ml 7] [gpu 4] -- tmux 4
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-10-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+
+-------------
+22-11-07
+-------------
+Actually, what I should really be running for the centering solution to match their setup is
+- BS 8, n groups 1, grad acc 8
+Running this hyper-parmeter sweep:
+- 1 [running] [ml 7] [gpu 5] -- tmux 5
+- 10 [running][ml 7] [gpu 6] -- tmux 6
+- 100 [running] [ml 7] [gpu 7] -- tmux 7
+- 1000 [running] [ml 7] [gpu 2] -- tmux 0
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-07-center-lmbd-1 --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1
+
+Examine performance with different batch sizes & number of groups (i.e., grad acc steps)
+- BS 128, n groups 1, grad acc 8 (no center); ./log/22-11-07-no-center-lmbd-1-bs-128-ga-8
+    python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-07-center-lmbd-1-no-center-lmbd-1-bs-128-ga-8 --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data False --device 0 --gradient_accumulation_steps 8 --batch_size 128  --n_groups_per_batch 1
+    - 1 [finished] [ml 7] [gpu 0] -- tmux 1
+    - 10 [finished] [ml 2] [gpu 2] -- tmux 2
+    - 100 [finished] [ml 2] [gpu 3] -- tmux 3
+    - 1000 [running] [ml 7] [gpu 5] -- tmux 5
+
+- BS 128, n groups 1, grad acc 8 (center); ./log/22-11-07-center-lmbd-1-bs-128-ga-8
+    python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-07-center-lmbd-1-center-lmbd-1-bs-128-ga-8 --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 128  --n_groups_per_batch 1
+    - 1 [finished] [ml 7] [gpu 1] -- tmux 2
+    - 10 [running[ [ml 7] [gpu 6] -- tmux 6
+    - 100 [running] [ml 7] [gpu 7] -- tmux 7
+    - 1000 [running] [ml 2] [gpu 0] -- tmux 0
+
+- BS 256, n groups 1, grad acc 8 (no center); ./log/22-11-07-center-lmbd-1-no-center-bs-256-ga-8
+    python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-07-center-lmbd-1-no-center-lmbd-1-bs-256-ga-8 --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data False --device 0 --gradient_accumulation_steps 8 --batch_size 256  --n_groups_per_batch 1
+     - 1 [running] [ml 7] [gpu 3] -- tmux 3
+     - 10 [running] [ml 9] [gpu 0] -- tmux 0
+     - 100 [running] [ml 9] [gpu 1] -- tmux 1
+     - 1000 [running] [ml 9] [gpu 2] -- tmux 2
+
+- BS 256, n groups 1, grad acc 8 (center); ./log/22-11-07-center-lmbd-1-center-bs-256-ga-8
+    python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-07-center-lmbd-1-center-lmbd-1-bs-256-ga-8 --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 256 --n_groups_per_batch 1
+    - 1 [running] [ml 7] [gpu 4] -- tmux 4
+    - 10 [running] [ml 9] [gpu 3] -- tmux 3
+    - 100 [running] [ml 2] [gpu 0] -- tmux 0
+    - 1000 [running] [ml 2] [gpu 1] -- tmux 1
+
+-------------
+22-11-03
+-------------
+Run eval - center + their batch size & num-groups -- ACTUALLY KILLED THESE RUNS BECAUSE THEY ARE NOT THE RIGHT SETUP FOR CENTERING
+- A
+- B
+- C
+- D
+- E
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-03-sb-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --batch_size 64  --n_groups_per_batch 8 --dataset_kwargs fold=A
+
+-------------
+22-11-01
+-------------
+Replicate their results (final)
+- A [running] [ml 7] [gpu 2] -- tmux 0
+- B [running] [ml 7] [gpu 0] -- tmux 1
+- C [running] [ml 7] [gpu 1] -- tmux 2
+- D [running] [ml 7] [gpu 3] -- tmux 3
+- E [running] [ml 7] [gpu 4] -- tmux 4
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-01-repl-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data False --device 0 --batch_size 64  --n_groups_per_batch 8 --dataset_kwargs fold=A
+
+Run parameter sweep w/ their batch size & num-groups + centering
+- 1 [running] [ml 7] [gpu 5] -- tmux 5
+- 10 [running] [ml 7] [gpu 6] -- tmux 6
+- 100 [running] [ml 7] [gpu 7] -- tmux 7
+- 1000 [running] [ml 7] [gpu 0] -- tmux 1
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-11-01-sb-center-lmbd-1 --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --batch_size 64  --n_groups_per_batch 8
+
+
+--------------
+22-10-31
+--------------
+
+Replicate their results (parameter sweep)
+- 1 [running] [ml 7] [gpu 2] -- tmux 0
+- 10 [running] [ml 7] [gpu 0] -- tmux 1
+- 100 [running] [ml 7] [gpu 1] -- tmux 2
+- 1000 [running] [ml 7] [gpu 3] -- tmux 3
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-10-31-repl-lmbd-1  --version "1.1" --algorithm IRM  --irm_lambda 1 --center_da
+ta False --device 0 --batch_size 64  --n_groups_per_batch 8
+
+--------------
+22-10-24
+--------------
+
 Center
-- 1
-- 10
-- 100
-- 1000
+- 1 [running] [ml 7] [gpu 1] -- tmux 2
+- 10 [running ml 7] [gpu 5] -- tmux 5
+- 100 [running ml 7] [gpu 6] -- tmux 6
+- 1000 [running ml 7] [gpu 7] -- tmux 7
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-10-24-center-lmbd-1  --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data
+True --device 2 --gradient_accumulation_steps 4 --batch_size 256  --n_groups_per_batch 1
 
 No Center
-- 1
-- 10
-- 100
-- 1000
+- 1 [running] [ml 7] [gpu 0] -- tmux 1
+- 10 [running] [ml 7] [gpu 2] -- tmux 0
+- 100 [running ml 7] [gpu 3] -- tmux 3
+- 1000 [running ml 7] [gpu 4] -- tmux 4
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-10-24-no-center-lmbd-1  --version "1.1" --algorithm IRM  --irm_lambda 1 --center_da
+ta False --device 0 --gradient_accumulation_steps 4 --batch_size 256  --n_groups_per_batch 1
+
+--------------
+22-10-28
+--------------
+
+EVAL w/ LMBD=1 EXPERIMENTS
+
+Center
+- A [running] [ml 7] [gpu 2] -- tmux 0
+- B [running] [ml 7] [gpu 0] -- tmux 1
+- C [running] [ml 7] [gpu 1] -- tmux 2
+- D [running] [ml 7] [gpu 3] -- tmux 3
+- E [running] [ml 7] [gpu 4] -- tmux 4
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-10-28-center-eval-A  --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data
+True --device 0 --gradient_accumulation_steps 4 --batch_size 256  --n_groups_per_batch 1 --dataset_kwargs fold=A
+
+No Center
+- A [running] [ml 7] [gpu 5] -- tmux 5
+- B [running] [ml 7] [gpu 6] -- tmux 6
+- C [running] [ml 7] [gpu 7] -- tmux 7
+- D [running] [ml 2] [gpu 0] -- tmux 1
+- E [running] [ml 2] [gpu 1] -- tmux 2
+
+python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-10-28-no-center-eval-A  --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data
+False --device 0 --gradient_accumulation_steps 4 --batch_size 256  --n_groups_per_batch 1 --dataset_kwargs fold=A
+

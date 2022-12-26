@@ -37,10 +37,11 @@ def maximum(numbers, empty_val=0.):
         else:
             return max(numbers)
 
-def split_into_groups(g):
+def split_into_groups(g, sort_groups=False):
     """
     Args:
         - g (Tensor): Vector of groups
+        - sort_groups (bool): whether to sort the returned groups
     Returns:
         - groups (Tensor): Unique groups present in g
         - group_indices (list): List of Tensors, where the i-th tensor is the indices of the
@@ -49,7 +50,7 @@ def split_into_groups(g):
         - unique_counts (Tensor): Counts of each element in groups.
                                  Has the same length as len(groups).
     """
-    unique_groups, unique_counts = torch.unique(g, sorted=False, return_counts=True)
+    unique_groups, unique_counts = torch.unique(g, sorted=sort_groups, return_counts=True)
     group_indices = []
     for group in unique_groups:
         group_indices.append(
