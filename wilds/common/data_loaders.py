@@ -77,18 +77,6 @@ def get_train_loader(loader, dataset, batch_size,
               drop_last=False,
               **loader_kwargs)
 
-    elif loader == 'group_eval':
-        assert grouper is not None
-        group_ids = grouper.metadata_to_group(dataset.metadata_array)
-        batch_sampler = EvalGroupSampler(group_ids=group_ids, batch_size=batch_size)
-        return DataLoader(dataset,
-              shuffle=None,
-              sampler=None,
-              collate_fn=dataset.collate,
-              batch_sampler=batch_sampler,
-              drop_last=False,
-              **loader_kwargs)
-
 
 def get_eval_loader(loader, dataset, batch_size, grouper=None, **loader_kwargs):
     """
@@ -109,6 +97,17 @@ def get_eval_loader(loader, dataset, batch_size, grouper=None, **loader_kwargs):
             collate_fn=dataset.collate,
             batch_size=batch_size,
             **loader_kwargs)
+    elif loader == 'group_eval':
+        assert grouper is not None
+        group_ids = grouper.metadata_to_group(dataset.metadata_array)
+        batch_sampler = EvalGroupSampler(group_ids=group_ids, batch_size=batch_size)
+        return DataLoader(dataset,
+              shuffle=None,
+              sampler=None,
+              collate_fn=dataset.collate,
+              batch_sampler=batch_sampler,
+              drop_last=False,
+              **loader_kwargs)
 
 class GroupSampler:
     """

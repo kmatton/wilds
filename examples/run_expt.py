@@ -369,6 +369,9 @@ def main():
                 batch_size=config.batch_size,
                 **config.loader_kwargs)
 
+        if split == 'val':  # for debugging
+            embed()
+
         # Set fields
         datasets[split]['split'] = split
         datasets[split]['name'] = full_dataset.split_names[split]
