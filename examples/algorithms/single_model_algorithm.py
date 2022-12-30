@@ -85,12 +85,12 @@ class SingleModelAlgorithm(GroupAlgorithm):
             y_norm = y_norm - torch.mean(y_norm)
             outputs = outputs - torch.mean(outputs)
         if self.normalization == "z":
+            print(f"y std {torch.std(y_norm)}")
+            print(f"outputs std {torch.std(outputs)}")
             if torch.std(y_norm) != 0:
                 y_norm = y_norm / torch.std(y_norm)
             if torch.std(outputs) != 0:
                 outputs = outputs / torch.std(outputs)
-            print(f"y std {torch.std(y_norm)}")
-            print(f"outputs std {torch.std(outputs)}")
 
         results = {
             'g': g,
