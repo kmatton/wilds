@@ -81,19 +81,17 @@ class SingleModelAlgorithm(GroupAlgorithm):
 
         outputs = self.get_model_output(x, y_true)
         y_norm = y_true.clone()
-        # maybe apply normalization (note: can't do in-place operations on variables you need for gradient computation)
-        if self.normalization == "center" or self.normalization == "z":  # center data
-            y_norm = y_norm - torch.mean(y_norm)
-            outputs = outputs - torch.mean(outputs)
-        if self.normalization == "z":
-            if torch.isnan(torch.std(y_norm)):
-                embed()
-            print(f"y std {torch.std(y_norm)}")
-            print(f"outputs std {torch.std(outputs)}")
-            if torch.std(y_norm) != 0:
-                y_norm = y_norm / torch.std(y_norm)
-            if torch.std(outputs) != 0:
-                outputs = outputs / torch.std(outputs)
+        # maybe apply normalization (if option provided & mode is training)
+        # (note: can't do in-place operations on variables you need for gradient computation)
+        if self.is_training:
+            if self.normalization == "center" or self.normalization == "z":  # center data
+                y_norm = y_norm - torch.mean(y_norm)
+                outputs = outputs - torch.mean(outputs)
+            if self.normalization == "z":
+                if torch.std(y_norm) != 0:
+                    y_norm = y_norm / torch.std(y_norm)
+                if torch.std(outputs) != 0:
+                    outputs = outputs / torch.std(outputs)
 
         results = {
             'g': g,

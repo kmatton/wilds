@@ -9,20 +9,39 @@ python examples/run_expt.py --dataset poverty --algorithm ERM --root_dir ./datas
 -------------
 22-12-30
 -------------
-Run w/ z-norm instead of centering
-- Wilds v1 parameters
-- labmda={0, 1}
+Fixed eval, so that normalization *doesn't* occur + use standard data loader
+- this fixes issue with trying to create batches with data from the same domain (in this case really should use all
+  data form the domain, because otherwise may be left with batches that are too small to accurately estimate
+  normalization statistics -- this is the issue I was running into before)
+
+Need to run
+- normalization = {z-norm, center}
+- lambda = {0, 1} ERM vs IRM
 - sweep over FOLDS
 
 time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-z-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --normalization z --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
-LAMBDA 0
-- A: milo gpu 3, tmux 0
+z-norm, LAMBDA 0
+- A
 - B
 - C
 - D
 - E
 
-LAMBDA 1
+center, LAMBDA 0
+- A
+- B
+- C
+- D
+- E
+
+z-norm, LAMBDA 1
+- A
+- B
+- C
+- D
+- E
+
+center, LAMBDA 1
 - A
 - B
 - C

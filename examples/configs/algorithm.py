@@ -25,7 +25,7 @@ algorithm_defaults = {
         'train_loader': 'group',
         'uniform_over_groups': True,
         'distinct_groups': True,
-        'eval_loader': 'group_eval',
+        'eval_loader': 'standard',
         'irm_lambda': 100.,
         'irm_penalty_anneal_iters': 500,
     },
