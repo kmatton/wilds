@@ -14,9 +14,9 @@ Run w/ z-norm instead of centering
 - labmda={0, 1}
 - sweep over FOLDS
 
-time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-z-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-z-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --normalization z --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
 LAMBDA 0
-- A
+- A: milo gpu 3, tmux 0
 - B
 - C
 - D
