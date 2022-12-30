@@ -1,4 +1,5 @@
 import torch
+from IPython import embed
 
 from algorithms.group_algorithm import GroupAlgorithm
 from scheduler import initialize_scheduler
@@ -85,6 +86,8 @@ class SingleModelAlgorithm(GroupAlgorithm):
             y_norm = y_norm - torch.mean(y_norm)
             outputs = outputs - torch.mean(outputs)
         if self.normalization == "z":
+            if torch.isnan(torch.std(y_norm)):
+                embed()
             print(f"y std {torch.std(y_norm)}")
             print(f"outputs std {torch.std(outputs)}")
             if torch.std(y_norm) != 0:
