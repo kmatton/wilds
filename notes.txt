@@ -1,16 +1,37 @@
 EXPERIMENTS
 
 -- CODE2RUN --
-source venvs/wild/bin/activate
-cd projects/wilds
+source venvs/wild/bin/activate (or conda activate environment -- conda activate wild)
+cd <path to wilds>/wilds
 export CUDA_VISIBLE_DEVICES=
 python examples/run_expt.py --dataset poverty --algorithm ERM --root_dir ./datasets --log_dir ./log/22-11-13-erm-no-center-fold-A --version "1.1" --center_data False --device 0 --dataset_kwargs fold=A
 
 -------------
+22-12-30
+-------------
+Run w/ z-norm instead of centering
+- Wilds v1 parameters
+- labmda={0, 1}
+- sweep over FOLDS
+
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-z-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+LAMBDA 0
+- A
+- B
+- C
+- D
+- E
+
+LAMBDA 1
+- A
+- B
+- C
+- D
+- E
+
+-------------
 22-12-26
 -------------
-Check how eval occurs --> like how performance is computed + number of samples are counted
--- also could save ground truth labels in addition to preds
 
 Run with corrected eval grouper for IRM
 - Issue before is that the default data loader for evaluation (val + test) datasets involved using the 'standard'
@@ -30,12 +51,12 @@ So, need to re-run IRM center experiments (and then also run the ERM-centering e
 -- grad acc steps 8
 -- SWEEP over folds
 
-python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-26-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
-- A
-- B
-- C
-- D
-- E
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-26-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A: DONE on Mars, tmux 0, GPU 0 -- 295m41.208s
+- B: DONE on Milo, tmux 1, GPU 5 -- 185m27.246s time
+- C: DONE on Mars, tmux 2, GPU 2 --  291m42.954s
+- D: DONE on Mars, tmux 3, GPU 3 -- 284m52s
+- E: DONE on Milo, tmux 0, GPU 3 --  191m10.266s time
 
 2. ERM-center EVAl EXP (w/ parameters chosen based on WILDS v2)
 -- center
@@ -46,6 +67,17 @@ python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./
 -- grad acc steps 8
 -- SWEEP over folds
 
+Note: for this experiment can't run on csail machines -- I get a pin memory error.
+But seems to be working on ML 7.
+
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-26-erm-center-v2-A --version "1.1" --algorithm IRM  --irm_lambda 0 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 15  --n_groups_per_batch 1 --dataset_kwargs fold=A --lr 0.003671043225227438
+- A: running Matlaber 7, tmux 1, gpu 0 -- real    1750m1.286s
+- B: running on Matlaber 7, tmux 3, gpu 1 -- real    1769m35.152s
+- C: running on Matlber 7, tmux 4, gpu 2 -- real    1794m11.257s
+- D: running on Matlaber 7, tmux 5, gpu 3 -- real    1798m14.651s
+- E: running on Matlaber 7, tmux 6, gpu 0 -- real    1797m2.325s
+-- all still runing from last night!
+
 3. ERM-center EVAl EXP (w/ parameters chosen based on WILDS v1)
 -- center
 -- lambda=0
@@ -55,6 +87,14 @@ python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./
 -- grad acc steps 8
 -- SWEEP over folds
 
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-26-erm-center-v1-A --version "1.1" --algorithm IRM  --irm_lambda 0 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A: running on Matlaber 7, tmux 8, gpu 4 -- real    1775m19.741s
+- B: running on Matlaber 7, tmux 7, gpu 5 -- real    1774m1.580s
+- C: running on Matlaber 7, tmux 9, gpu 6 -- real    1770m43.884s
+- D: running on Matlaber 7, tmux 10, gpu 7 -- real    1765m42.555s
+- E: running on Milo, tmux 0, gpu 3 -- finished in real 184m29.302s
+-- all matlaber runs still going from last night -- that's ridiculous
+
 4. IRM-center PARAMETER SWEEP EXP
 Parameter setting to run (IRM runs)
 -- center
@@ -63,7 +103,16 @@ Parameter setting to run (IRM runs)
 -- batch size 8
 -- n groups per batch 1
 -- grad acc steps 8
--- SWEEP lambda={1, 10, 100, 1000}
+-- SWEEP lambda={10, 100, 1000} (already ran with lambda = 1)
+
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-26-irm-center-lambda_10 --version "1.1" --algorithm IRM  --irm_lambda 10 --center_data True --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+
+- 10: running on Milo, tmux 1, GPU 5 -- finished in real 182m24.319s
+- 100: running on Mars, tmux 2, GPU 2 -- finished in real  272m6.280s
+- 1000: running on Mars, tmux 3, GPU 3 -- finished in real 265m11.014s
+  Note these jobs failed due to pin memory issue on Mars gpu 0/1
+
+
 
 LATER
 ---+ also look at different batch sizes + more epochs

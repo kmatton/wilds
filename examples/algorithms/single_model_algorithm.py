@@ -45,7 +45,7 @@ class SingleModelAlgorithm(GroupAlgorithm):
             no_group_logging=config.no_group_logging,
         )
         self.model = model
-        self.center = config.center_data
+        self.normalization = config.normalization
 
     def get_model_output(self, x, y_true):
         if self.model.needs_y:
@@ -79,14 +79,21 @@ class SingleModelAlgorithm(GroupAlgorithm):
         g = move_to(self.grouper.metadata_to_group(metadata), self.device)
 
         outputs = self.get_model_output(x, y_true)
-        y_centered = y_true.clone()
-        if self.center:  # center data
-            y_centered = y_centered - torch.mean(y_centered)
+        y_norm = y_true.clone()
+        # maybe apply normalization
+        if self.normalization == "center" or self.normalization == "z":  # center data
+            y_norm -= torch.mean(y_norm)
             outputs -= torch.mean(outputs)
+        if self.normalization == "z":
+            if torch.std(y_norm) != 0:
+                y_norm /= torch.std(y_norm)
+            outputs_std = torch.std(outputs)
+            assert not torch.any(outputs_std == 0), "feature has 0 standard deviation"
+            outputs /= outputs_std
 
         results = {
             'g': g,
-            'y_true': y_centered,
+            'y_true': y_norm,
             'y_pred': outputs,
             'metadata': metadata,
         }
