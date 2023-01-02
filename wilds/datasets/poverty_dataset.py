@@ -262,7 +262,7 @@ class PovertyMapDataset(WILDSDataset):
         all_results = {}
         all_results_str = ''
         for metric in metrics:
-            for _groupby, _eval_grouper in zip(self._eval_groupers, ["U/R", "country"]):
+            for _groupby, _eval_grouper in zip(["U/R", "country"], self._eval_groupers):
                 results, results_str = self.standard_group_eval(
                     metric,
                     _eval_grouper,
