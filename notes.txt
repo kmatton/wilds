@@ -20,33 +20,36 @@ Need to run
 - sweep over FOLDS
 
 time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-z-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --normalization z --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
-z-norm, LAMBDA 0
-- A
-- B
-- C
-- D
-- E
+z-norm, LAMBDA 0 (ERM)
+- A: running on Milo, tmux 0, gpu 3 real    181m39.053s - DONE
+- B: running on Milo, tmux 1, gpu 5 real    181m39.486s - DONE
+- C: running on Mars, tmux 1, gpu 1 325m5.297s - DONE
+- D: running on Milo, tmux 2, gpu 7 - DONE 183
+- E: running on Mars, tmux 2, gpu 2 - DONE 322m20.110s
 
-center, LAMBDA 0
-- A
-- B
-- C
-- D
-- E
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-erm-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --normalization center --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+center, LAMBDA 0 (ERM)
+- A: running on Mars, tmux 3, gpu 3 -- 319m6.543s DONE
+- B: running on Twix, tmux 0, gpu 0 -- 317 DONE
+- C: running on Twix, tmux 1, gpu 1 -- 316 DONE
+- D: running on Twix, tmux 2, gpu 2 -- 314 DONE
+- E: running on Twix, tmux 3, gpu 3 -- 315 DONE
 
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-irm-lmbd-1-z-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --normalization z --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
 z-norm, LAMBDA 1
-- A
-- B
-- C
-- D
-- E
+- A: running on Oreo, tmux 0, gpu 1 -- 286 DONE
+- B: running on Oreo, tmux 1, gpu 0 -- 282 DONE
+- C: running on Milo, tmux 0, gpu 3 -- 192 DONE
+- D: running on Milo, tmux 1, gpu 5 -- 191 DONE
+- E: running on Milo, tmux 2, gpu 7 --  192 DONE
 
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/22-12-30-irm-lmbd-1-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --normalization center --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
 center, LAMBDA 1
-- A
-- B
-- C
-- D
-- E
+- A: running on ahoy, tmux 0, gpu 1 -- 248 DONE
+- B: running on ahoy, tmux 1, gpu 2 -- 247 DONE
+- C: running on ahoy, tmux 2, gpu 3 -- 242 DONE
+- D: running on Milo, tmux 0, gpu 3 -- 183 DONE
+- E: running on Milo, tmux 1, gpu 5 -- 184 DONE
 
 -------------
 22-12-26

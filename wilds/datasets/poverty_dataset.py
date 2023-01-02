@@ -226,9 +226,8 @@ class PovertyMapDataset(WILDSDataset):
         # rename wealthpooled to y
         self._metadata_fields = ['urban', 'y', 'country']
 
-        self._eval_grouper = CombinatorialGrouper(
-            dataset=self,
-            groupby_fields=['urban'])
+        self._eval_groupers = [CombinatorialGrouper(dataset=self, groupby_fields=['urban']),
+                               CombinatorialGrouper(dataset=self, groupby_fields=['country'])]
 
         super().__init__(root_dir, download, split_scheme)
 
@@ -263,10 +262,13 @@ class PovertyMapDataset(WILDSDataset):
         all_results = {}
         all_results_str = ''
         for metric in metrics:
-            results, results_str = self.standard_group_eval(
-                metric,
-                self._eval_grouper,
-                y_pred, y_true, metadata)
-            all_results.update(results)
-            all_results_str += results_str
+            for _groupby, _eval_grouper in zip(self._eval_groupers, ["U/R", "country"]):
+                results, results_str = self.standard_group_eval(
+                    metric,
+                    _eval_grouper,
+                    y_pred, y_true, metadata)
+                results = {f"{_groupby}_{key}": val for key, val in results.items()}
+                all_results.update(results)
+                all_results_str += f"Group-by={_groupby}"
+                all_results_str += results_str
         return all_results, all_results_str
