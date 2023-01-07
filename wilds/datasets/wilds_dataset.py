@@ -43,12 +43,13 @@ class WILDSDataset:
         """
         raise NotImplementedError
 
-    def eval(self, y_pred, y_true, metadata):
+    def eval(self, y_pred, y_true, metadata, adapt="none"):
         """
         Args:
             - y_pred (Tensor): Predicted targets
             - y_true (Tensor): True targets
             - metadata (Tensor): Metadata
+            - adapt (bool): if true, also evaluate w/ adaptation applied
         Output:
             - results (dict): Dictionary of results
             - results_str (str): Pretty print version of the results
@@ -600,5 +601,5 @@ class WILDSSubset(WILDSDataset):
     def metadata_array(self):
         return self.dataset.metadata_array[self.indices]
 
-    def eval(self, y_pred, y_true, metadata):
-        return self.dataset.eval(y_pred, y_true, metadata)
+    def eval(self, y_pred, y_true, metadata, adapt="none"):
+        return self.dataset.eval(y_pred, y_true, metadata, adapt)
