@@ -32,12 +32,13 @@ So first experiment is:
    , and then evaluate by country (here, result of adaptation vs not should be the same),
    and by U/R group (here we expect that adaptation may make a difference)?
 
-(1) ERM, no normalization, sweep folds
+(1) ERM, no normalization, sweep folds (grouped ERM, with group data loader rather than standard)
+MILO 2,3,5,6,7
 time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/23-01-07-erm-no-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --normalization none --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
-- A:
-- B:
-- C:
-- D:
+- A: running on MILO, tmux 0, gpu 3
+- B: running on MILO, tmux 1, gpu 5
+- C: running on MILO, tmux 2, gpu 7
+- D: running on MILO, tmux 3, gpu 6
 - E:
 
 (2) ERM, centering, sweep folds
@@ -59,6 +60,15 @@ time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_d
 (4) IRM, centering, sweep folds
 time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/23-01-07-irm-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --normalization center --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
 - A:
+- B:
+- C:
+- D:
+- E:
+
+(5) standard ERM, no normalization, sweep folds
+MILO 2,3,5,6,7
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/23-01-07-erm-standard-fold-A --version "1.1" --algorithm ERM --normalization none --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A: running on MILO, tmux 0, gpu 3
 - B:
 - C:
 - D:

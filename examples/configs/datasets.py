@@ -322,7 +322,7 @@ dataset_defaults = {
         'transform': 'poverty',
         'loss_function': 'mse',
         'groupby_fields': ['country',],
-        'val_metric': 'r_wg',
+        'val_metric': 'U/R_r_wg',
         'val_metric_decreasing': False,
         'algo_log_metric': 'mse',
         'optimizer': 'Adam',
