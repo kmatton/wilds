@@ -7,6 +7,64 @@ export CUDA_VISIBLE_DEVICES=
 python examples/run_expt.py --dataset poverty --algorithm ERM --root_dir ./datasets --log_dir ./log/22-11-13-erm-no-center-fold-A --version "1.1" --center_data False --device 0 --dataset_kwargs fold=A
 
 -------------
+22-01-07
+-------------
+Fixed issue with eval being on different domains (by country) than domains used at training (U/R).
+Added evaluation w/ both types of domains + domain adaptation.
+NOTE: adaptation should probably occur based on training domains!
+
+Need to run:
+- train group by fields = {country, urban}
+- normalization = {center, z-norm, none} -- need re-run "none" to get per-country results
+- lambda = {0, 1} ERM vs IRM
+- fold = {A, B, C, D, E}
+(+ maybe do hyperparameter sweep over learning rate + lambda later)
+
+Later: do no normalization but with adaptation??
+
+START WITH
+- Train groupby country (eval by both groups, adapt based on both group types): why? this is a more fine-grained grouping
+  so I expect it to work better. Also, this is the grouping used in the original WILDS experiments.
+
+So first experiment is:
+-- How well do different normalization schemes + lambda compare, when we train with domains as different countries,
+   adapt with domains as different countries (although we run w/ both types of domains used for adpatation, just to see)
+   , and then evaluate by country (here, result of adaptation vs not should be the same),
+   and by U/R group (here we expect that adaptation may make a difference)?
+
+(1) ERM, no normalization, sweep folds
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/23-01-07-erm-no-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --normalization none --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A:
+- B:
+- C:
+- D:
+- E:
+
+(2) ERM, centering, sweep folds
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/23-01-07-erm-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 0 --normalization center --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A:
+- B:
+- C:
+- D:
+- E:
+
+(3) IRM, no normalization, sweep folds
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/23-01-07-irm-no-norm-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --normalization none --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A:
+- B:
+- C:
+- D:
+- E:
+
+(4) IRM, centering, sweep folds
+time python examples/run_expt.py --dataset poverty --root_dir ./datasets --log_dir ./log/23-01-07-irm-center-fold-A --version "1.1" --algorithm IRM  --irm_lambda 1 --normalization center --device 0 --gradient_accumulation_steps 8 --batch_size 8  --n_groups_per_batch 1 --dataset_kwargs fold=A
+- A:
+- B:
+- C:
+- D:
+- E:
+
+-------------
 22-12-30
 -------------
 Fixed eval, so that normalization *doesn't* occur + use standard data loader

@@ -436,7 +436,7 @@ class WILDSDataset:
         return results, results_str
 
     @staticmethod
-    def _adapt_by_group(grouper, y_pred, y_true, metadata, adapt_type, adapt_n=10, min_test_n=10):
+    def _adapt_by_group(grouper, y_pred, y_true, metadata, adapt_type, adapt_n=50, min_test_n=10):
         """
         Args:
             - grouper (CombinatorialGrouper): Grouper object that converts metadata into groups
@@ -500,7 +500,7 @@ class WILDSDataset:
         return adapt_stats, test_metadata, test_pred, test_true
 
     def standard_group_eval(self, metric, grouper, y_pred, y_true, metadata, aggregate=True, adapt_by_group=False,
-                            adapt_type="center", adapt_n=10, min_test_n=10):
+                            adapt_type="center", adapt_n=50, min_test_n=10, adapt_grouper=None):
         """
         Args:
             - metric (Metric): Metric to use for eval
@@ -513,14 +513,16 @@ class WILDSDataset:
             - adapt_type (str): type of adaptation to perform -- "center" or "z"
             - adapt_n (int): number of examples to use for adaptation
             - min_test_n (int): minimum # of examples for group to have to be included during testing
+            - adapt_grouper (CombinatorialGrouper): Grouper for adaptation
         Output:
             - results (dict): Dictionary of results
             - results_str (str): Pretty print version of the results
         """
         results, results_str = {}, ''
         if adapt_by_group:
+            assert adapt_grouper is not None, "adapt group needs to provided if adapting by group"
             adapt_stats, metadata, y_pred, y_true = self._adapt_by_group(
-                grouper,
+                adapt_grouper,
                 y_pred,
                 y_true,
                 metadata,

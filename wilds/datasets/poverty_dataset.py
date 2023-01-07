@@ -274,18 +274,21 @@ class PovertyMapDataset(WILDSDataset):
                 all_results_str += results_str
                 # then evaluate with adaptation
                 if adapt != "none":
-                    results, results_str = self.standard_group_eval(
-                        metric,
-                        _eval_grouper,
-                        y_pred,
-                        y_true,
-                        metadata,
-                        adapt_by_group=True,
-                        adapt_type=adapt
-                    )
-                    results = {f"adapt_{_groupby}_{key}": val for key, val in results.items()}
-                    all_results.update(results)
-                    all_results_str += "Adaptation results"
-                    all_results_str += f"Group-by={_groupby}"
-                    all_results_str += results_str
+                    # adapt by each type of group
+                    for _groupby_adapt, _adapt_grouper in zip(["U/R", "country"], self._eval_groupers):
+                        results, results_str = self.standard_group_eval(
+                            metric,
+                            _eval_grouper,
+                            y_pred,
+                            y_true,
+                            metadata,
+                            adapt_by_group=True,
+                            adapt_type=adapt,
+                            adapt_grouper=_adapt_grouper
+                        )
+                        results = {f"adapt_{_groupby_adapt}_eval_{_groupby}_{key}": val for key, val in results.items()}
+                        all_results.update(results)
+                        all_results_str += "Adaptation results"
+                        all_results_str += f"Group-by: Adapt={_groupby_adapt}, Eval={_groupby}"
+                        all_results_str += results_str
         return all_results, all_results_str
