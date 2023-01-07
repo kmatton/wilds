@@ -602,4 +602,4 @@ class WILDSSubset(WILDSDataset):
         return self.dataset.metadata_array[self.indices]
 
     def eval(self, y_pred, y_true, metadata, adapt="none"):
-        return self.dataset.eval(y_pred, y_true, metadata, adapt)
+        return self.dataset.eval(y_pred, y_true, metadata, adapt=adapt)
