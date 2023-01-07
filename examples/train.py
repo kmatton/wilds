@@ -78,7 +78,9 @@ def run_epoch(algorithm, dataset, general_logger, epoch, config, train, unlabele
     results, results_str = dataset['dataset'].eval(
         epoch_y_pred,
         epoch_y_true,
-        epoch_metadata)
+        epoch_metadata,
+        adapt=config.normalization
+    )
 
     if config.scheduler_metric_split==dataset['split']:
         algorithm.step_schedulers(
@@ -170,7 +172,9 @@ def evaluate(algorithm, datasets, epoch, general_logger, config, is_best):
         results, results_str = dataset['dataset'].eval(
             epoch_y_pred,
             epoch_y_true,
-            epoch_metadata)
+            epoch_metadata,
+            adapt=config.normalization
+        )
 
         results['epoch'] = epoch
         dataset['eval_logger'].log(results)

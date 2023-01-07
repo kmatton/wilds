@@ -435,7 +435,71 @@ class WILDSDataset:
         return results, results_str
 
     @staticmethod
-    def standard_group_eval(metric, grouper, y_pred, y_true, metadata, aggregate=True):
+    def _adapt_by_group(grouper, y_pred, y_true, metadata, adapt_type, adapt_n=10, min_test_n=10):
+        """
+        Args:
+            - grouper (CombinatorialGrouper): Grouper object that converts metadata into groups
+            - y_pred (Tensor): Predicted targets
+            - y_true (Tensor): True targets
+            - metadata (Tensor): Metadata
+            - adapt_type (str): type of adaptation to perform -- "center" or "z"
+            - adapt_n (int): number of examples to use for adaptation
+            - min_test_n (int): minimum # of examples for group to have to be included during testing
+        Output:
+            - adapt_stats (dict): contains adaptation statistics (mean, std) for each group
+            - test_metadata (Tensor): metadata (for test data only)
+            - test_pred (Tensor): Predicted targets (for test data only)
+            - test_true (Tensor): True targets (for test data only)
+        """
+        g = grouper.metadata_to_group(metadata)
+        adapt_stats = {}
+        test_metadata = []
+        test_pred = []
+        test_true = []
+        assert adapt_type in ["center", "z"], f"invalid adapt type {adapt_type}"
+        for group_idx in range(grouper.n_groups):
+            group_str = grouper.group_field_str(group_idx)
+            group_pred = y_pred[g == group_idx]
+            group_true = y_true[g == group_idx]
+            # handle case where group doesn't have sufficient data for adaptation
+            if len(group_pred) < adapt_n:
+                adapt_stats[f"{group_str}_y_pred_mean_{adapt_n}"] = np.NAN
+                adapt_stats[f"{group_str}_y_pred_std_{adapt_n}"] = np.NAN
+                adapt_stats[f"{group_str}_y_true_mean_{adapt_n}"] = np.NAN
+                adapt_stats[f"{group_str}_y_true_std_{adapt_n}"] = np.NAN
+                continue
+            pred_mean = torch.mean(group_pred[:adapt_n])
+            pred_std = torch.std(group_pred[:adapt_n])
+            true_mean = torch.mean(group_true[:adapt_n])
+            true_std = torch.std(group_true[:adapt_n])
+            adapt_stats[f"{group_str}_y_pred_mean_{adapt_n}"] = pred_mean.item()
+            adapt_stats[f"{group_str}_y_pred_std_{adapt_n}"] = pred_std.item()
+            adapt_stats[f"{group_str}_y_true_mean_{adapt_n}"] = true_mean.item()
+            adapt_stats[f"{group_str}_y_true_std_{adapt_n}"] = true_std.item()
+            # normalize test data (remaining data) post adaptation
+            group_test_pred = group_pred[adapt_n:].clone()
+            if len(group_test_pred) < min_test_n:  # check if enough data for testing
+                continue
+            group_test_true = group_true[adapt_n:].clone()
+            # center data -- note this is the same as predicting y_pred - y_pred_mean + y_true_mean
+            group_test_pred -= pred_mean
+            group_test_true -= true_mean
+            if adapt_type == "z":  # also divide by standard deviation
+                if pred_std != 0:
+                    group_test_pred /= pred_std
+                if true_std != 0:
+                    group_test_true /= true_std
+            group_metadata = metadata[g == group_idx][adapt_n:].clone()
+            test_metadata.append(group_metadata)
+            test_pred.append(group_test_pred)
+            test_true.append(group_test_true)
+        test_metadata = torch.cat(test_metadata)
+        test_pred = torch.cat(test_pred)
+        test_true = torch.cat(test_true)
+        return adapt_stats, test_metadata, test_pred, test_true
+
+    def standard_group_eval(self, metric, grouper, y_pred, y_true, metadata, aggregate=True, adapt_by_group=False,
+                            adapt_type="center", adapt_n=10, min_test_n=10):
         """
         Args:
             - metric (Metric): Metric to use for eval
@@ -443,11 +507,29 @@ class WILDSDataset:
             - y_pred (Tensor): Predicted targets
             - y_true (Tensor): True targets
             - metadata (Tensor): Metadata
+            - aggregate (bool): if true, return aggregate metric across all data points
+            - adapt_by_group (bool): if true, evaluating after applying per-group adaptation
+            - adapt_type (str): type of adaptation to perform -- "center" or "z"
+            - adapt_n (int): number of examples to use for adaptation
+            - min_test_n (int): minimum # of examples for group to have to be included during testing
         Output:
             - results (dict): Dictionary of results
             - results_str (str): Pretty print version of the results
         """
         results, results_str = {}, ''
+        if adapt_by_group:
+            adapt_stats, metadata, y_pred, y_true = self._adapt_by_group(
+                grouper,
+                y_pred,
+                y_true,
+                metadata,
+                adapt_type,
+                adapt_n,
+                min_test_n
+            )
+            results.update(adapt_stats)
+            results_str += str(adapt_stats)
+            results_str += "\n"
         if aggregate:
             results.update(metric.compute(y_pred, y_true))
             results_str += f"Average {metric.name}: {results[metric.agg_metric_field]:.3f}\n"

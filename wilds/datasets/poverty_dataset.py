@@ -243,7 +243,7 @@ class PovertyMapDataset(WILDSDataset):
 
         return img
 
-    def eval(self, y_pred, y_true, metadata, prediction_fn=None):
+    def eval(self, y_pred, y_true, metadata, prediction_fn=None, adapt="none"):
         """
         Computes all evaluation metrics.
         Args:
@@ -263,6 +263,7 @@ class PovertyMapDataset(WILDSDataset):
         all_results_str = ''
         for metric in metrics:
             for _groupby, _eval_grouper in zip(["U/R", "country"], self._eval_groupers):
+                # first evaluate w/o adaptation
                 results, results_str = self.standard_group_eval(
                     metric,
                     _eval_grouper,
@@ -271,4 +272,20 @@ class PovertyMapDataset(WILDSDataset):
                 all_results.update(results)
                 all_results_str += f"Group-by={_groupby}"
                 all_results_str += results_str
+                # then evaluate with adaptation
+                if adapt != "none":
+                    results, results_str = self.standard_group_eval(
+                        metric,
+                        _eval_grouper,
+                        y_pred,
+                        y_true,
+                        metadata,
+                        adapt_by_group=True,
+                        adapt_type=adapt
+                    )
+                    results = {f"adapt_{_groupby}_{key}": val for key, val in results.items()}
+                    all_results.update(results)
+                    all_results_str += "Adaptation results"
+                    all_results_str += f"Group-by={_groupby}"
+                    all_results_str += results_str
         return all_results, all_results_str
